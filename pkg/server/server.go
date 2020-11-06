@@ -1,8 +1,8 @@
 package server
 
 import (
-	"GOpages/pkg/page"
 	"encoding/json"
+	"github.com/DaniilOr/goPages/pkg/page"
 	"github.com/DaniilOr/gorest/pkg/remux"
 	"log"
 	"net/http"

@@ -1,4 +1,4 @@
-module GOpages
+module github.com/DaniilOr/goPages
 
 go 1.15
 

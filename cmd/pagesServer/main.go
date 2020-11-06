@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GOpages/pkg/server"
+	"github.com/DaniilOr/goPages/pkg/server"
 	"github.com/DaniilOr/gorest/pkg/middleware/logger"
 	"github.com/DaniilOr/gorest/pkg/middleware/recoverer"
 	"github.com/DaniilOr/gorest/pkg/remux"
@@ -15,7 +15,6 @@ const defaultPort = "8888"
 const defaultHost = "0.0.0.0"
 
 func main() {
-	os.Setenv("dsn", "postgres://app:pass@localhost:5432/bankdb")
 	os.Setenv("PORT", defaultPort)
 	os.Setenv("HOST", defaultHost)
 	port, ok := os.LookupEnv("PORT")
