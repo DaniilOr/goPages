@@ -1,0 +1,30 @@
+###
+GET http://0.0.0.0:8888/api/pages HTTP/1.1
+
+###
+POST http://0.0.0.0:8888/api/pages HTTP/1.1
+Accept: application/json
+Content-Type: application/x-www-form-urlencoded
+
+name=Name&text=Text&img=www.google.com
+###
+GET http://0.0.0.0:8888/api/pages/1 HTTP/1.1
+
+###
+GET http://0.0.0.0:8888/api/pages/5 HTTP/1.1
+
+###
+
+PUT http://0.0.0.0:8888/api/pages/1 HTTP/1.1
+Accept: text/plain
+Content-Type: application/x-www-form-urlencoded
+
+name=NewName&text=NewText&img=www.google.com
+###
+DELETE http://0.0.0.0:8888/api/pages/3 HTTP/1.1
+Accept: text/plain
+Content-Type: application/x-www-form-urlencoded
+###
+GET http://0.0.0.0:8888/api/pag HTTP/1.1
+Accept: text/plain
+Content-Type: application/x-www-form-urlencoded
