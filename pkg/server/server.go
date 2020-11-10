@@ -23,22 +23,20 @@ type Server struct{
 func NewService()*Server{
 	mu := remux.CreateNewReMUX()
 
-	return &Server{ sync.RWMutex{}, mu, []*page.Page{}, 0}
+	return &Server{ Mu: sync.RWMutex{}, Mux: mu, pages: []*page.Page{}, maxPageID: 0}
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.Mux.ServeHTTP(w, r)
 }
 func (s*Server) GetAll(w http.ResponseWriter, r*http.Request){
-	log.Println(s.pages)
-	pages := make([]page.PageDTO, len(s.pages))
-	for i, page := range s.pages{
-		pages[i].Id = page.Id
-		pages[i].Name = page.Name
-		pages[i].Img = page.Img
-		pages[i].Date = page.Date
+	s.Mu.RLock()
+	defer s.Mu.RUnlock()
+	pages := make([]page.PageDTO, 0, len(s.pages))
+	for _, currPage := range s.pages{
+		pg := page.PageDTO{Id: currPage.Id, Name: currPage.Name, Img: currPage.Img, Date: currPage.Date}
+		pages = append(pages, pg)
 	}
-	log.Println(pages)
 	respBody, err := json.Marshal(pages)
 	if err != nil {
 		log.Println(err)
@@ -96,7 +94,6 @@ func (s*Server) GetSingle(w http.ResponseWriter, r*http.Request){
 func (s*Server) Change(w http.ResponseWriter, r*http.Request){
 	s.Mu.Lock()
 	defer s.Mu.Unlock()
-	var pageId int64
 	found := false
 	params, err := remux.PathParams(r.Context())
 	if err != nil {
@@ -108,6 +105,7 @@ func (s*Server) Change(w http.ResponseWriter, r*http.Request){
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+	var pageId int64
 	for i, pg := range s.pages{
 		if id == pg.Id {
 			pageId = int64(i)
@@ -130,7 +128,7 @@ func (s*Server) Change(w http.ResponseWriter, r*http.Request){
 	err = r.ParseForm()
 	if err != nil{
 		log.Println(err)
-		res := page.Result{"Error", "Error parsing form"}
+		res := page.Result{Result: "Error", ErrorDescription: "Error parsing form"}
 		respBody, err := json.Marshal(res)
 		if err != nil {
 			log.Println(err)
@@ -167,9 +165,8 @@ func (s*Server) Change(w http.ResponseWriter, r*http.Request){
 	makeResponse(res, w, r)
 }
 func (s*Server) Add(w http.ResponseWriter, r*http.Request){
-	s.Mu.RLock()
-	defer s.Mu.RUnlock()
-	var pageId int64
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
 	err := r.ParseForm()
 	if err != nil{
 		log.Println(err)
@@ -189,7 +186,7 @@ func (s*Server) Add(w http.ResponseWriter, r*http.Request){
 	img := r.PostForm.Get("img")
 	text := r.PostForm.Get("text")
 	if name == "" || img == "" || text == "" {
-		res := page.Result{"Error", "One or more parameter is empty"}
+		res := page.Result{Result: "Error", ErrorDescription: "One or more parameter is empty"}
 		respBody, err := json.Marshal(res)
 		if err != nil {
 			log.Println(err)
@@ -202,20 +199,19 @@ func (s*Server) Add(w http.ResponseWriter, r*http.Request){
 	}
 	s.maxPageID += 1
 	newPage := page.Page{Id: s.maxPageID, Name: name, Img: img, Text: text, Date: time.Now()}
-	log.Println(newPage)
 	s.pages = append(s.pages, &newPage)
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(CHANGED)
-	res, err := json.Marshal(s.pages[pageId])
+	res, err := json.Marshal(newPage)
 	if err != nil{
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	makeResponse(res, w, r)
 }
-func (s*Server) Detele(w http.ResponseWriter, r*http.Request){
-	s.Mu.RLock()
-	defer s.Mu.RUnlock()
-	var pageId int64
+func (s*Server) Delete(w http.ResponseWriter, r*http.Request){
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
 	found := false
 	params, err := remux.PathParams(r.Context())
 	if err != nil {
@@ -227,6 +223,7 @@ func (s*Server) Detele(w http.ResponseWriter, r*http.Request){
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+	var pageId int64
 	for i, pg := range s.pages{
 		if id == pg.Id {
 			pageId = int64(i)
@@ -241,31 +238,21 @@ func (s*Server) Detele(w http.ResponseWriter, r*http.Request){
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
-		} else {
-			makeResponse(respBody, w, r)
-			return
 		}
+		makeResponse(respBody, w, r)
+		return
 	}
 	if len(s.pages) == 1{
 		s.pages = []*page.Page{}
 		w.WriteHeader(DELETED)
 		return
 	}
-	before := s.pages[:pageId-1]
-	after := s.pages[pageId:]
+	before := s.pages[:pageId]
+	after := s.pages[pageId+1:]
 	s.pages = before
 	s.pages = append(s.pages, after...)
 	w.WriteHeader(DELETED)
-	res := page.Result{Result: "Done", ErrorDescription: "Page deleted"}
-	respBody, err := json.Marshal(res)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	} else {
-		makeResponse(respBody, w, r)
-		return
-	}
+	return
 }
 func makeResponse(respBody []byte, w http.ResponseWriter, r*http.Request) {
 	w.Header().Add("Content-Type", "application/json")

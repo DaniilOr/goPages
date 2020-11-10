@@ -21,7 +21,7 @@ Content-Type: application/x-www-form-urlencoded
 
 name=NewName&text=NewText&img=www.google.com
 ###
-DELETE http://0.0.0.0:8888/api/pages/3 HTTP/1.1
+DELETE http://0.0.0.0:8888/api/pages/1 HTTP/1.1
 Accept: text/plain
 Content-Type: application/x-www-form-urlencoded
 ###
